@@ -1,15 +1,18 @@
-from pydantic_settings import BaseSettings  #  Pydantic v2 usa este paquete
+# config.py
+from pydantic_settings import BaseSettings  # Pydantic v2 usa este paquete
 
 class Settings(BaseSettings):
+    """
+    Configuración global cargada desde .env
+    """
     google_client_id: str
     google_client_secret: str
     secret_key: str
+    redirect_uri: str  # URI de redirección autorizada en Google Cloud
 
     class Config:
-        # archivo de variables de entorno
         env_file = ".env"
-        # (opcional) codificación del archivo
         env_file_encoding = "utf-8"
 
-# crea una instancia global que usarás en main.py
+# instancia global que se importa en main.py
 settings = Settings()
