@@ -2558,22 +2558,116 @@ def dashboard(
 
 @app.get("/reports", response_class=HTMLResponse)
 def reports_page(request: Request):
-    """Página de reportes avanzados"""
+    """Página de reportes avanzados con datos reales"""
     try:
-        # Verificar que el usuario esté autenticado
+        print("📊 Cargando reportes...")
+        
+        # Verificar credenciales
         creds = get_creds_from_session(request)
         
-        # Obtener información del usuario y su rol
-        user_info = me(request)
+        # Info del usuario
+        prof = people_service(creds).people().get(
+            resourceName="people/me",
+            personFields="names,emailAddresses,photos"
+        ).execute()
         
-        # Renderizar template de reportes
+        email = prof.get("emailAddresses", [{}])[0].get("value", "")
+        name = prof.get("names", [{}])[0].get("displayName", "Usuario")
+        role = get_user_role(creds, email)
+        
+        user_info = {
+            "email": email,
+            "name": name,
+            "role": role,
+            "photo": prof.get("photos", [{}])[0].get("url", "")
+        }
+        
+        # Obtener datos para reportes
+        try:
+            svc = classroom_service(creds)
+            
+            # Obtener cursos donde tengo acceso (como profesor o owner)
+            courses_response = svc.courses().list(pageSize=20).execute()
+            all_courses = courses_response.get("courses", [])
+            
+            # Filtrar cursos donde soy teacher o owner
+            accessible_courses = []
+            for course in all_courses:
+                course_id = course["id"]
+                course_owner = course.get("ownerId", "")
+                
+                # Verificar si soy owner
+                is_owner = course_owner == email.lower()
+                
+                # Verificar si soy teacher
+                is_teacher = False
+                try:
+                    teachers_response = svc.courses().teachers().list(courseId=course_id).execute()
+                    teachers = teachers_response.get("teachers", [])
+                    for teacher in teachers:
+                        teacher_email = teacher.get("profile", {}).get("emailAddress", "").lower()
+                        if teacher_email == email.lower():
+                            is_teacher = True
+                            break
+                except Exception:
+                    pass
+                
+                if is_owner or is_teacher:
+                    accessible_courses.append(course)
+            
+            print(f"📚 Cursos accesibles para reportes: {len(accessible_courses)}")
+            
+            # Generar estadísticas básicas
+            stats = {
+                "total_courses": len(accessible_courses),
+                "active_courses": len([c for c in accessible_courses if c.get("courseState") == "ACTIVE"]),
+                "total_students": 0,
+                "total_assignments": 0
+            }
+            
+            # Contar estudiantes y tareas
+            for course in accessible_courses:
+                try:
+                    # Contar estudiantes
+                    students_response = svc.courses().students().list(courseId=course["id"]).execute()
+                    students_count = len(students_response.get("students", []))
+                    stats["total_students"] += students_count
+                    
+                    # Contar tareas
+                    assignments_response = svc.courses().courseWork().list(courseId=course["id"]).execute()
+                    assignments_count = len(assignments_response.get("courseWork", []))
+                    stats["total_assignments"] += assignments_count
+                except Exception:
+                    pass
+            
+            print(f"📊 Estadísticas generadas: {stats}")
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo datos de reportes: {e}")
+            stats = {
+                "total_courses": 0,
+                "active_courses": 0,
+                "total_students": 0,
+                "total_assignments": 0
+            }
+        
+        # Renderizar template de reportes con datos
         return templates.TemplateResponse("reports.html", {
             "request": request,
-            "user": user_info
+            "user": user_info,
+            "stats": stats
         })
+        
     except HTTPException:
         # Si no está autenticado, redirigir al login
         return RedirectResponse("/login")
+    except Exception as e:
+        print(f"❌ Error en reportes: {e}")
+        return HTMLResponse(f"""
+        <h1>Error en Reportes</h1>
+        <p>Error: {str(e)}</p>
+        <a href="/">Volver al inicio</a>
+        """, status_code=500)
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request):
