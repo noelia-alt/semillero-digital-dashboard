@@ -76,7 +76,7 @@
       <i class="bi bi-graph-up-arrow text-primary me-2"></i>Reportes Avanzados
     </h1>
     <div class="d-flex gap-2">
-      <span class="badge bg-{{ 'danger' if user.role == 'coordinador' else 'success' if user.role == 'profesor' else 'info' }} fs-6">
+      <span class="badge bg-{{ 'success' if user.role == 'teacher' else 'info' }} fs-6">
         <i class="bi bi-person-badge me-1"></i>{{ user.role|title }}
       </span>
       <button class="btn btn-outline-primary" onclick="refreshReports()">
@@ -197,7 +197,7 @@
   </div>
 
   <!-- Módulo de Asistencia -->
-  {% if user.role in ['profesor', 'coordinador'] %}
+  {% if user.role == 'teacher' %}
   <div class="row mt-4">
     <div class="col-12">
       <div class="card report-card">
@@ -231,7 +231,7 @@ let cohortChart, distributionChart;
 // Cargar datos al inicializar la página
 document.addEventListener('DOMContentLoaded', function() {
     loadReportData();
-    {% if user.role in ['profesor', 'coordinador'] %}
+    {% if user.role == 'teacher' %}
     loadCalendarEvents();
     {% endif %}
 });
@@ -393,7 +393,7 @@ function updateCohortTable(stats) {
     });
 }
 
-{% if user.role in ['profesor', 'coordinador'] %}
+{% if user.role == 'teacher' %}
 async function loadCalendarEvents() {
     try {
         const response = await fetch('/calendar/events');
@@ -439,7 +439,7 @@ async function loadCalendarEvents() {
 
 function refreshReports() {
     loadReportData();
-    {% if user.role in ['profesor', 'coordinador'] %}
+    {% if user.role == 'teacher' %}
     loadCalendarEvents();
     {% endif %}
 }

@@ -192,18 +192,14 @@ def get_user_role(creds: Credentials, user_email: str):
             except Exception:
                 pass
         
-        # Determinar el rol principal con lógica mejorada
-        if is_owner or courses_as_teacher >= 3:  # Dueño de cursos o enseña en 3+ cursos = administrador
-            return "administrador"
-        elif courses_as_teacher >= 1:  # Enseña en 1+ cursos = profesor (cambiado de 2 a 1)
-            return "profesor"
-        elif is_teacher:  # Es teacher pero no se contó correctamente
-            return "profesor"
+        # Determinar el rol principal usando roles oficiales de Google Classroom
+        if is_owner or courses_as_teacher >= 1:  # Si es owner o teacher en cualquier curso
+            return "teacher"  # Rol oficial de Google Classroom
         elif is_student:
-            return "estudiante"
+            return "student"  # Rol oficial de Google Classroom
         else:
-            # En desarrollo, si tiene permisos de classroom, probablemente es profesor
-            return "profesor"  # Cambiado de "invitado" a "profesor" para desarrollo
+            # Si no tiene rol específico, asignar como teacher para desarrollo
+            return "teacher"
             
     except Exception as e:
         logger.error(f"Error determinando rol: {e}")
@@ -212,11 +208,14 @@ def get_user_role(creds: Credentials, user_email: str):
 def check_permission(user_role: str, required_roles: list) -> bool:
     """Verificar si el usuario tiene permisos para acceder a una funcionalidad"""
     role_hierarchy = {
+        "teacher": 3,      # Roles oficiales de Google Classroom
+        "student": 1,      # Roles oficiales de Google Classroom  
+        "guardian": 1,     # Rol oficial de Google Classroom
+        "invitado": 0,
+        # Mantener compatibilidad con roles legacy
         "administrador": 4,
         "coordinador": 3,
-        "profesor": 2,
-        "estudiante": 1,
-        "invitado": 0
+        "profesor": 3
     }
     
     user_level = role_hierarchy.get(user_role, 0)
@@ -2284,8 +2283,61 @@ def get_delivery_stats(request: Request):
     
     try:
         logger.info("📊 Generando estadísticas de reportes...")
+        
+        # Obtener información del usuario actual
+        prof = people_service(creds).people().get(
+            resourceName="people/me",
+            personFields="names,emailAddresses"
+        ).execute()
+        
+        email = prof.get("emailAddresses", [{}])[0].get("value", "")
+        current_user_id = prof.get("resourceName", "").replace("people/", "")
+        
+        # Obtener todos los cursos
         courses_response = svc.courses().list(pageSize=100).execute()
-        courses = courses_response.get("courses", [])
+        all_courses = courses_response.get("courses", [])
+        
+        # Filtrar solo cursos donde tengo acceso (mismo filtro que en /reports)
+        accessible_courses = []
+        for course in all_courses:
+            course_id = course["id"]
+            course_name = course.get("name", "Sin nombre")
+            course_owner = course.get("ownerId", "")
+            
+            # Verificar si soy owner
+            is_owner = (course_owner == email.lower() or 
+                       course_owner == email or
+                       (current_user_id and course_owner == current_user_id))
+            
+            # Verificar si soy teacher
+            is_teacher = False
+            try:
+                teachers_response = svc.courses().teachers().list(courseId=course_id).execute()
+                teachers = teachers_response.get("teachers", [])
+                
+                for teacher in teachers:
+                    teacher_email = teacher.get("profile", {}).get("emailAddress", "").lower()
+                    teacher_id = teacher.get("userId", "")
+                    
+                    if (teacher_email == email.lower() or 
+                        teacher_email == email or
+                        (current_user_id and teacher_id == current_user_id)):
+                        is_teacher = True
+                        break
+            except Exception:
+                pass
+            
+            # Forzar acceso al curso TEST para debugging
+            if course_name == "TEST" and "noeliab.altamirano" in email.lower():
+                is_owner = True
+                logger.info(f"🔧 Forzando acceso a {course_name} para delivery-stats")
+            
+            if is_owner or is_teacher:
+                accessible_courses.append(course)
+                logger.info(f"📊 Curso incluido en estadísticas: {course_name}")
+        
+        courses = accessible_courses
+        logger.info(f"📊 Total cursos para estadísticas: {len(courses)}")
         
         stats_by_course = {}
         
