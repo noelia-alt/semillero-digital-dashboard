@@ -2874,7 +2874,12 @@ def home(request: Request):
     })
 
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(
+    request: Request, 
+    cohort: str = None, 
+    teacher_email: str = None, 
+    status: str = None
+):
     """Dashboard principal de Semillero Digital"""
     try:
         print("🔍 Accediendo al dashboard...")
@@ -2909,7 +2914,7 @@ def dashboard(request: Request):
         
         try:
             print("🔄 Cargando datos del dashboard...")
-            dashboard_data = get_dashboard_data(request)
+            dashboard_data = get_dashboard_data(request, cohort=cohort, teacher_email=teacher_email, status=status)
             print("✅ Datos del dashboard obtenidos")
             
             # Preparar datos para los gráficos
