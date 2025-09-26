@@ -1,0 +1,19 @@
+# Archivos a ignorar en Docker
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.venv/
+venv/
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+*.md
+.pytest_cache/
+.coverage
+htmlcov/

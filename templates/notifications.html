@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Notificaciones - Semillero Digital</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .notification-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #0d6efd;
+        }
+        .notification-card:hover {
+            transform: translateY(-2px);
+        }
+        .feature-icon {
+            font-size: 2rem;
+            color: #0d6efd;
+        }
+
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard">
+      <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="me-2">
+        <!-- Hoja superior (verde) -->
+        <path d="M30 10 Q50 5 60 25 Q55 35 40 30 Q25 25 30 10" fill="#4ECDC4" stroke="#4ECDC4" stroke-width="2"/>
+        
+        <!-- Hoja izquierda (azul) -->
+        <path d="M10 35 Q5 50 25 55 Q35 50 30 35 Q25 20 10 35" fill="#45B7D1" stroke="#45B7D1" stroke-width="2"/>
+        
+        <!-- Tallo central -->
+        <line x1="35" y1="30" x2="35" y2="70" stroke="#4ECDC4" stroke-width="4"/>
+        
+        <!-- Círculo base (naranja) -->
+        <circle cx="35" cy="75" r="20" fill="none" stroke="#FF6B35" stroke-width="6"/>
+        
+        <!-- Punto central (morado) -->
+        <circle cx="35" cy="75" r="6" fill="#6C5CE7"/>
+      </svg>
+      Semillero Digital
+    </a>
+    
+    <div class="d-flex align-items-center">
+      <span class="badge bg-{{ 'danger' if user.role == 'coordinador' else 'success' if user.role == 'profesor' else 'info' }} me-3">
+        <i class="bi bi-person-badge me-1"></i>{{ user.role|title }}
+      </span>
+      <a class="btn btn-outline-light me-2" href="/dashboard">
+        <i class="bi bi-house"></i> Dashboard
+      </a>
+      <a class="btn btn-outline-light me-2" href="/reports">
+        <i class="bi bi-graph-up-arrow"></i> Reportes
+      </a>
+      <a class="btn btn-outline-light" href="/logout">
+        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">
+      <i class="bi bi-bell text-primary me-2"></i>Configuración de Notificaciones
+    </h1>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success" onclick="sendTestNotification()">
+        <i class="bi bi-envelope-check"></i> Prueba
+      </button>
+      {% if user.role in ['coordinador', 'profesor'] %}
+      <button class="btn btn-outline-primary" onclick="checkNotifications()">
+        <i class="bi bi-arrow-clockwise"></i> Verificar Ahora
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div id="alertContainer"></div>
+
+  <div class="row">
+    <!-- Configuración de Canales -->
+    <div class="col-lg-6">
+      <div class="card notification-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-gear me-2"></i>Canales de Notificación
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="notificationForm">
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                <label class="form-check-label" for="emailNotifications">
+                  <i class="bi bi-envelope me-2"></i>Notificaciones por Email
+                </label>
+              </div>
+              <small class="text-muted">Recibir notificaciones en tu correo electrónico</small>
+            </div>
+            
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="whatsappNotifications">
+                <label class="form-check-label" for="whatsappNotifications">
+                  <i class="bi bi-whatsapp me-2"></i>Notificaciones por WhatsApp
+                </label>
+              </div>
+              <small class="text-muted">Próximamente disponible</small>
+            </div>
+            
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="telegramNotifications">
+                <label class="form-check-label" for="telegramNotifications">
+                  <i class="bi bi-telegram me-2"></i>Notificaciones por Telegram
+                </label>
+              </div>
+              <small class="text-muted">Próximamente disponible</small>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tipos de Notificaciones -->
+    <div class="col-lg-6">
+      <div class="card notification-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-list-check me-2"></i>Tipos de Notificaciones
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="newAssignments" checked>
+              <label class="form-check-label" for="newAssignments">
+                <i class="bi bi-file-plus me-2"></i>Nuevas Tareas
+              </label>
+            </div>
+            <small class="text-muted">Notificar cuando se asignen nuevas tareas</small>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="dueReminders" checked>
+              <label class="form-check-label" for="dueReminders">
+                <i class="bi bi-clock me-2"></i>Recordatorios de Entrega
+              </label>
+            </div>
+            <small class="text-muted">Recordatorios 24 horas antes del vencimiento</small>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="gradeUpdates" checked>
+              <label class="form-check-label" for="gradeUpdates">
+                <i class="bi bi-star me-2"></i>Actualizaciones de Calificaciones
+              </label>
+            </div>
+            <small class="text-muted">Notificar cuando se publiquen calificaciones</small>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="classReminders">
+              <label class="form-check-label" for="classReminders">
+                <i class="bi bi-calendar-event me-2"></i>Recordatorios de Clases
+              </label>
+            </div>
+            <small class="text-muted">Recordatorios de clases próximas</small>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button type="button" class="btn btn-primary" onclick="saveConfiguration()">
+            <i class="bi bi-check-circle me-1"></i>Guardar Configuración
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Características del Sistema -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card notification-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-info-circle me-2"></i>Características del Sistema de Notificaciones
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 text-center mb-3">
+              <i class="bi bi-lightning-charge feature-icon d-block mb-2"></i>
+              <h6>Notificaciones Automáticas</h6>
+              <p class="text-muted small">El sistema verifica automáticamente nuevas tareas y recordatorios cada hora.</p>
+            </div>
+            <div class="col-md-4 text-center mb-3">
+              <i class="bi bi-shield-check feature-icon d-block mb-2"></i>
+              <h6>Seguridad y Privacidad</h6>
+              <p class="text-muted small">Todas las notificaciones respetan la privacidad y solo se envían a usuarios autorizados.</p>
+            </div>
+            <div class="col-md-4 text-center mb-3">
+              <i class="bi bi-graph-up feature-icon d-block mb-2"></i>
+              <h6>Inteligencia Adaptativa</h6>
+              <p class="text-muted small">El sistema aprende de tus patrones para optimizar el momento de las notificaciones.</p>
+            </div>
+          </div>
+          
+          {% if user.role in ['coordinador', 'profesor'] %}
+          <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Funciones de {{ user.role|title }}:</strong> 
+            Puedes ejecutar verificaciones manuales de notificaciones y acceder a configuraciones avanzadas.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historial de Notificaciones (placeholder) -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card notification-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>Historial Reciente
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center py-4">
+            <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+            <p class="text-muted">No hay notificaciones recientes para mostrar.</p>
+            <small class="text-muted">Las notificaciones aparecerán aquí una vez que el sistema esté completamente configurado.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Cargar configuración al inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+});
+
+async function loadConfiguration() {
+    try {
+        const response = await fetch('/notifications/config');
+        const config = await response.json();
+        
+        // Actualizar switches de canales
+        document.getElementById('emailNotifications').checked = config.email_notifications;
+        document.getElementById('whatsappNotifications').checked = config.whatsapp_notifications;
+        document.getElementById('telegramNotifications').checked = config.telegram_notifications;
+        
+        // Actualizar switches de tipos
+        document.getElementById('newAssignments').checked = config.notification_types.new_assignments;
+        document.getElementById('dueReminders').checked = config.notification_types.due_reminders;
+        document.getElementById('gradeUpdates').checked = config.notification_types.grade_updates;
+        document.getElementById('classReminders').checked = config.notification_types.class_reminders;
+        
+    } catch (error) {
+        console.error('Error cargando configuración:', error);
+        showAlert('Error cargando la configuración', 'danger');
+    }
+}
+
+async function saveConfiguration() {
+    const config = {
+        email_notifications: document.getElementById('emailNotifications').checked,
+        whatsapp_notifications: document.getElementById('whatsappNotifications').checked,
+        telegram_notifications: document.getElementById('telegramNotifications').checked,
+        notification_types: {
+            new_assignments: document.getElementById('newAssignments').checked,
+            due_reminders: document.getElementById('dueReminders').checked,
+            grade_updates: document.getElementById('gradeUpdates').checked,
+            class_reminders: document.getElementById('classReminders').checked
+        }
+    };
+    
+    try {
+        const response = await fetch('/notifications/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('Configuración guardada exitosamente', 'success');
+        } else {
+            showAlert('Error guardando la configuración', 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Error guardando configuración:', error);
+        showAlert('Error guardando la configuración', 'danger');
+    }
+}
+
+async function sendTestNotification() {
+    try {
+        const response = await fetch('/notifications/send-test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('Notificación de prueba enviada. Revisa tu email.', 'success');
+        } else {
+            showAlert('Error enviando notificación de prueba', 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Error enviando notificación de prueba:', error);
+        showAlert('Error enviando notificación de prueba', 'danger');
+    }
+}
+
+{% if user.role in ['coordinador', 'profesor'] %}
+async function checkNotifications() {
+    try {
+        const response = await fetch('/notifications/check');
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('Verificación de notificaciones iniciada en segundo plano', 'info');
+        } else {
+            showAlert('Error iniciando verificación de notificaciones', 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Error verificando notificaciones:', error);
+        showAlert('Error verificando notificaciones', 'danger');
+    }
+}
+{% endif %}
+
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert" id="${alertId}">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+    
+    // Auto-remove alert after 5 seconds
+    setTimeout(() => {
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.remove();
+        }
+    }, 5000);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes Avanzados - Semillero Digital</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .report-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #0d6efd;
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+        }
+        .metric-card {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            margin: 0 10px;
+        }
+
+        .plant-pot {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 16px;
+            background: linear-gradient(145deg, #8B4513, #A0522D);
+            border-radius: 0 0 16px 16px;
+            border: 2px solid #654321;
+        }
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard-direct">
+      <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="me-2">
+        <!-- Hoja superior (verde) -->
+        <path d="M30 10 Q50 5 60 25 Q55 35 40 30 Q25 25 30 10" fill="#4ECDC4" stroke="#4ECDC4" stroke-width="2"/>
+        
+        <!-- Hoja izquierda (azul) -->
+        <path d="M10 35 Q5 50 25 55 Q35 50 30 35 Q25 20 10 35" fill="#45B7D1" stroke="#45B7D1" stroke-width="2"/>
+        
+        <!-- Tallo central -->
+        <line x1="35" y1="30" x2="35" y2="70" stroke="#4ECDC4" stroke-width="4"/>
+        
+        <!-- Círculo base (naranja) -->
+        <circle cx="35" cy="75" r="20" fill="none" stroke="#FF6B35" stroke-width="6"/>
+        
+        <!-- Punto central (morado) -->
+        <circle cx="35" cy="75" r="6" fill="#6C5CE7"/>
+      </svg>
+      Semillero Digital
+    </a>
+    <div class="d-flex">
+      <a class="btn btn-outline-light me-2" href="/dashboard">
+        <i class="bi bi-house"></i> Dashboard
+      </a>
+      <a class="btn btn-outline-light me-2" href="/me">
+        <i class="bi bi-person-circle"></i> Mi Perfil
+      </a>
+      <a class="btn btn-outline-light" href="/logout">
+        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">
+      <i class="bi bi-graph-up-arrow text-primary me-2"></i>Reportes Avanzados
+    </h1>
+    <div class="d-flex gap-2">
+      <span class="badge bg-{{ 'danger' if user.role == 'coordinador' else 'success' if user.role == 'profesor' else 'info' }} fs-6">
+        <i class="bi bi-person-badge me-1"></i>{{ user.role|title }}
+      </span>
+      <button class="btn btn-outline-primary" onclick="refreshReports()">
+        <i class="bi bi-arrow-clockwise"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Métricas generales -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card metric-card">
+        <div class="card-body text-center">
+          <i class="bi bi-trophy fs-1 mb-2"></i>
+          <h4 id="avgCompletionRate">--%</h4>
+          <p class="mb-0">Tasa de Finalización Promedio</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-check-circle fs-1 mb-2"></i>
+          <h4 id="avgOnTimeRate">--%</h4>
+          <p class="mb-0">Entregas a Tiempo</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-dark">
+        <div class="card-body text-center">
+          <i class="bi bi-clock fs-1 mb-2"></i>
+          <h4 id="avgLateRate">--%</h4>
+          <p class="mb-0">Entregas Tardías</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body text-center">
+          <i class="bi bi-x-circle fs-1 mb-2"></i>
+          <h4 id="avgMissingRate">--%</h4>
+          <p class="mb-0">Entregas Faltantes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos de reportes -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card report-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-bar-chart me-2"></i>Rendimiento por Cohorte
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="cohortPerformanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card report-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-pie-chart me-2"></i>Distribución General
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="distributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card report-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-table me-2"></i>Detalle por Cohorte
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th>Cohorte</th>
+                  <th>Total Entregas</th>
+                  <th>A Tiempo</th>
+                  <th>Tardías</th>
+                  <th>Faltantes</th>
+                  <th>Reentregas</th>
+                  <th>% Finalización</th>
+                  <th>% A Tiempo</th>
+                </tr>
+              </thead>
+              <tbody id="cohortDetailsTable">
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Módulo de Asistencia -->
+  {% if user.role in ['profesor', 'coordinador'] %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card report-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar-event me-2"></i>Próximas Clases
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="upcomingClasses">
+            <div class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando eventos...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let cohortChart, distributionChart;
+
+// Cargar datos al inicializar la página
+document.addEventListener('DOMContentLoaded', function() {
+    loadReportData();
+    {% if user.role in ['profesor', 'coordinador'] %}
+    loadCalendarEvents();
+    {% endif %}
+});
+
+async function loadReportData() {
+    try {
+        const response = await fetch('/reports/delivery-stats');
+        const data = await response.json();
+        
+        updateMetrics(data.stats_by_course);
+        createCohortChart(data.stats_by_course);
+        createDistributionChart(data.stats_by_course);
+        updateCohortTable(data.stats_by_course);
+        
+    } catch (error) {
+        console.error('Error cargando reportes:', error);
+    }
+}
+
+function updateMetrics(stats) {
+    let totalSubmissions = 0;
+    let totalOnTime = 0;
+    let totalLate = 0;
+    let totalMissing = 0;
+    let totalCompleted = 0;
+    
+    Object.values(stats).forEach(cohort => {
+        totalSubmissions += cohort.total;
+        totalOnTime += cohort.on_time;
+        totalLate += cohort.late;
+        totalMissing += cohort.missing;
+        totalCompleted += (cohort.on_time + cohort.late + cohort.returned);
+    });
+    
+    if (totalSubmissions > 0) {
+        document.getElementById('avgCompletionRate').textContent = 
+            Math.round((totalCompleted / totalSubmissions) * 100) + '%';
+        document.getElementById('avgOnTimeRate').textContent = 
+            Math.round((totalOnTime / totalSubmissions) * 100) + '%';
+        document.getElementById('avgLateRate').textContent = 
+            Math.round((totalLate / totalSubmissions) * 100) + '%';
+        document.getElementById('avgMissingRate').textContent = 
+            Math.round((totalMissing / totalSubmissions) * 100) + '%';
+    }
+}
+
+function createCohortChart(stats) {
+    const ctx = document.getElementById('cohortPerformanceChart');
+    const labels = Object.keys(stats);
+    
+    if (cohortChart) cohortChart.destroy();
+    
+    cohortChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'A Tiempo',
+                data: labels.map(label => stats[label].on_time_percentage),
+                backgroundColor: '#198754'
+            }, {
+                label: 'Tardías',
+                data: labels.map(label => Math.round((stats[label].late / stats[label].total) * 100)),
+                backgroundColor: '#ffc107'
+            }, {
+                label: 'Faltantes',
+                data: labels.map(label => Math.round((stats[label].missing / stats[label].total) * 100)),
+                backgroundColor: '#dc3545'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Porcentaje de Entregas por Estado'
+                }
+            }
+        }
+    });
+}
+
+function createDistributionChart(stats) {
+    const ctx = document.getElementById('distributionChart');
+    
+    let totalOnTime = 0, totalLate = 0, totalMissing = 0, totalReturned = 0;
+    
+    Object.values(stats).forEach(cohort => {
+        totalOnTime += cohort.on_time;
+        totalLate += cohort.late;
+        totalMissing += cohort.missing;
+        totalReturned += cohort.returned;
+    });
+    
+    if (distributionChart) distributionChart.destroy();
+    
+    distributionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['A Tiempo', 'Tardías', 'Faltantes', 'Reentregas'],
+            datasets: [{
+                data: [totalOnTime, totalLate, totalMissing, totalReturned],
+                backgroundColor: ['#198754', '#ffc107', '#dc3545', '#0dcaf0']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function updateCohortTable(stats) {
+    const tbody = document.getElementById('cohortDetailsTable');
+    tbody.innerHTML = '';
+    
+    Object.entries(stats).forEach(([cohort, data]) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td><strong>${cohort}</strong></td>
+            <td>${data.total}</td>
+            <td><span class="badge bg-success">${data.on_time}</span></td>
+            <td><span class="badge bg-warning text-dark">${data.late}</span></td>
+            <td><span class="badge bg-danger">${data.missing}</span></td>
+            <td><span class="badge bg-info">${data.returned}</span></td>
+            <td>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-success" style="width: ${data.completion_rate}%"></div>
+                </div>
+                <small>${data.completion_rate}%</small>
+            </td>
+            <td>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-primary" style="width: ${data.on_time_percentage}%"></div>
+                </div>
+                <small>${data.on_time_percentage}%</small>
+            </td>
+        `;
+    });
+}
+
+{% if user.role in ['profesor', 'coordinador'] %}
+async function loadCalendarEvents() {
+    try {
+        const response = await fetch('/calendar/events');
+        const data = await response.json();
+        
+        const container = document.getElementById('upcomingClasses');
+        container.innerHTML = '';
+        
+        if (data.events.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No hay clases programadas próximamente.</p>';
+            return;
+        }
+        
+        data.events.forEach(event => {
+            const eventDate = new Date(event.start);
+            const eventCard = document.createElement('div');
+            eventCard.className = 'card mb-2';
+            eventCard.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title mb-1">${event.summary}</h6>
+                            <p class="card-text text-muted mb-1">
+                                <i class="bi bi-calendar me-1"></i>${eventDate.toLocaleDateString('es-ES')} 
+                                <i class="bi bi-clock ms-2 me-1"></i>${eventDate.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}
+                            </p>
+                            ${event.location ? `<p class="card-text text-muted mb-0"><i class="bi bi-geo-alt me-1"></i>${event.location}</p>` : ''}
+                        </div>
+                        <span class="badge bg-primary">Próxima</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(eventCard);
+        });
+        
+    } catch (error) {
+        console.error('Error cargando eventos del calendario:', error);
+        document.getElementById('upcomingClasses').innerHTML = 
+            '<p class="text-danger text-center">Error cargando eventos del calendario.</p>';
+    }
+}
+{% endif %}
+
+function refreshReports() {
+    loadReportData();
+    {% if user.role in ['profesor', 'coordinador'] %}
+    loadCalendarEvents();
+    {% endif %}
+}
+</script>
+
+</body>
+</html>

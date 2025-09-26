@@ -6,116 +6,632 @@
     <title>Dashboard - Semillero Digital</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .stat-card {
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .nav-pills .nav-link {
+            color: #6c757d;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        .table-responsive {
+            border-radius: 0.375rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        /* Animación sutil para el icono de bombilla */
+        .lightbulb-glow {
+            animation: gentleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes gentleGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 5px rgba(255, 193, 7, 0.3));
+                transform: scale(1);
+            }
+            50% { 
+                filter: drop-shadow(0 0 15px rgba(255, 193, 7, 0.6));
+                transform: scale(1.05);
+            }
+        }
+    </style>
 </head>
 <body class="bg-light">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#">Semillero Digital</a>
-    <div class="d-flex">
-      <a class="btn btn-outline-light" href="/logout">Cerrar sesión</a>
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="me-2">
+        <!-- Hoja superior (verde) -->
+        <path d="M30 10 Q50 5 60 25 Q55 35 40 30 Q25 25 30 10" fill="#4ECDC4" stroke="#4ECDC4" stroke-width="2"/>
+        
+        <!-- Hoja izquierda (azul) -->
+        <path d="M10 35 Q5 50 25 55 Q35 50 30 35 Q25 20 10 35" fill="#45B7D1" stroke="#45B7D1" stroke-width="2"/>
+        
+        <!-- Tallo central -->
+        <line x1="35" y1="30" x2="35" y2="70" stroke="#4ECDC4" stroke-width="4"/>
+        
+        <!-- Círculo base (naranja) -->
+        <circle cx="35" cy="75" r="20" fill="none" stroke="#FF6B35" stroke-width="6"/>
+        
+        <!-- Punto central (morado) -->
+        <circle cx="35" cy="75" r="6" fill="#6C5CE7"/>
+      </svg>
+      Semillero Digital
+    </a>
+    
+    <div class="d-flex align-items-center">
+      <span class="badge bg-{{ 'danger' if user.role == 'administrador' else 'warning' if user.role == 'coordinador' else 'success' if user.role == 'profesor' else 'info' }} me-3">
+        <i class="bi bi-person-badge me-1"></i>{{ user.role|title }}
+      </span>
+      <a class="btn btn-outline-light me-2" href="/reports">
+        <i class="bi bi-graph-up-arrow"></i> Reportes
+      </a>
+      <a class="btn btn-outline-light me-2" href="/notifications">
+        <i class="bi bi-bell"></i> Notificaciones
+      </a>
+      {% if user.role in ['administrador', 'coordinador', 'profesor'] %}
+      <button class="btn btn-outline-light me-2" onclick="clearCache()" title="Limpiar caché para datos más actualizados">
+        <i class="bi bi-arrow-clockwise"></i> Actualizar
+      </button>
+      {% endif %}
+      <a class="btn btn-outline-light me-2" href="/me">
+        <i class="bi bi-person-circle"></i> Mi Perfil
+      </a>
+      <a class="btn btn-outline-light" href="/logout">
+        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      </a>
     </div>
   </div>
 </nav>
 
-<div class="container">
-  <h1 class="mb-4">Dashboard de Cursos</h1>
-
-  <!-- Filtros simples -->
-  <form class="row mb-4" method="get">
-    <div class="col-md-4">
-      <label class="form-label">Filtrar por cohorte</label>
-      <input type="text" class="form-control" name="cohort" value="{{ request.query_params.get('cohort','') }}">
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">
+      <i class="bi bi-graph-up text-primary me-2"></i>Dashboard de Cursos
+    </h1>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Actualizar
+      </button>
+      <button class="btn btn-outline-success" onclick="exportData()">
+        <i class="bi bi-download"></i> Exportar
+      </button>
     </div>
-    <div class="col-md-4">
-      <label class="form-label">Filtrar por profesor</label>
-      <input type="text" class="form-control" name="teacher_email" value="{{ request.query_params.get('teacher_email','') }}">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Estado de entrega</label>
-      <select class="form-select" name="status">
-        <option value="">Todos</option>
-        {% for s in ['entregado','atrasado','faltante','reentrega'] %}
-          <option value="{{ s }}" {% if request.query_params.get('status') == s %}selected{% endif %}>{{ s|capitalize }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12 mt-3">
-      <button class="btn btn-primary">Aplicar filtros</button>
-    </div>
-  </form>
-
-  <!-- Tabla de entregas -->
-  <div class="table-responsive">
-    <table class="table table-striped table-bordered align-middle">
-      <thead class="table-primary">
-        <tr>
-          <th>Curso</th>
-          <th>Tarea</th>
-          <th>Alumno</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in data.rows %}
-          <tr>
-            <td>{{ row.cohort }}</td>
-            <td>{{ row.courseWork }}</td>
-            <td>{{ row.studentId }}</td>
-            <td>
-              <span class="badge bg-{{ 'success' if row.status=='entregado' else 'warning' if row.status=='atrasado' else 'danger' if row.status=='faltante' else 'info' }}">
-                {{ row.status }}
-              </span>
-            </td>
-          </tr>
-        {% else %}
-          <tr><td colspan="4" class="text-center">Sin datos para mostrar</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </div>
 
-  <!-- Gráfico de progreso agregado -->
-  <h2 class="mt-5">Progreso por alumno</h2>
-  <canvas id="progressChart" height="120"></canvas>
+  <!-- Mensaje inspiracional de Semillero Digital -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-info border-0 shadow-sm" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+        <div class="d-flex align-items-center">
+          <div class="me-3">
+            <i class="bi bi-lightbulb text-warning lightbulb-glow" style="font-size: 2.5rem;"></i>
+          </div>
+          <div>
+            <h6 class="mb-1 text-primary">
+              <i class="bi bi-heart-fill me-2"></i>
+              <strong>Semillero Digital - Transformando Vidas a Través de la Tecnología</strong>
+            </h6>
+            <p class="mb-0 small text-muted">
+              Cada estudiante es una semilla con potencial infinito. Aquí cultivamos el talento, 
+              nutrimos el conocimiento y vemos florecer el futuro de la tecnología. 🌱✨
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estadísticas generales -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card stat-card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ data.courses_summary|length }}</h4>
+              <p class="card-text">Cursos Activos</p>
+            </div>
+            <i class="bi bi-book fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ data.students_summary|length }}</h4>
+              <p class="card-text">Estudiantes</p>
+            </div>
+            <i class="bi bi-people fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ data.teachers_summary|length }}</h4>
+              <p class="card-text">Profesores</p>
+            </div>
+            <i class="bi bi-person-badge fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card bg-warning text-dark">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ data.rows|length }}</h4>
+              <p class="card-text">Entregas Totales</p>
+            </div>
+            <i class="bi bi-file-earmark-text fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros mejorados -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-funnel me-2"></i>Filtros
+      </h5>
+    </div>
+    <div class="card-body">
+      <form class="row" method="get">
+        <div class="col-md-3">
+          <label class="form-label"><i class="bi bi-collection me-1"></i>Cohorte</label>
+          <input type="text" class="form-control" name="cohort" 
+                 value="{{ request.query_params.get('cohort','') }}" 
+                 placeholder="Nombre del curso...">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label"><i class="bi bi-person-check me-1"></i>Email del Profesor</label>
+          <input type="email" class="form-control" name="teacher_email" 
+                 value="{{ request.query_params.get('teacher_email','') }}"
+                 placeholder="profesor@ejemplo.com">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label"><i class="bi bi-flag me-1"></i>Estado de Entrega</label>
+          <select class="form-select" name="status">
+            <option value="">Todos los estados</option>
+            {% for s in ['entregado','atrasado','faltante','reentrega'] %}
+              <option value="{{ s }}" {% if request.query_params.get('status') == s %}selected{% endif %}>
+                {{ s|capitalize }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-search"></i> Filtrar
+          </button>
+          <a href="/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Limpiar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Navegación por pestañas -->
+  <ul class="nav nav-pills mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="entregas-tab" data-bs-toggle="pill" data-bs-target="#entregas" type="button" role="tab">
+        <i class="bi bi-file-earmark-check me-1"></i>Entregas
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="estudiantes-tab" data-bs-toggle="pill" data-bs-target="#estudiantes" type="button" role="tab">
+        <i class="bi bi-people me-1"></i>Estudiantes
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="profesores-tab" data-bs-toggle="pill" data-bs-target="#profesores" type="button" role="tab">
+        <i class="bi bi-person-badge me-1"></i>Profesores
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="cursos-tab" data-bs-toggle="pill" data-bs-target="#cursos" type="button" role="tab">
+        <i class="bi bi-book me-1"></i>Cursos
+      </button>
+    </li>
+  </ul>
+
+  <!-- Contenido de las pestañas -->
+  <div class="tab-content" id="dashboardTabsContent">
+    
+    <!-- Pestaña de Entregas -->
+    <div class="tab-pane fade show active" id="entregas" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Estado de Entregas</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th><i class="bi bi-book me-1"></i>Curso</th>
+                  <th><i class="bi bi-file-text me-1"></i>Tarea</th>
+                  <th><i class="bi bi-person me-1"></i>Estudiante</th>
+                  <th><i class="bi bi-flag me-1"></i>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in data.rows %}
+                  <tr>
+                    <td>
+                      <div class="fw-semibold">{{ row.cohort }}</div>
+                    </td>
+                    <td>{{ row.courseWork }}</td>
+                    <td>{{ row.studentId }}</td>
+                    <td>
+                      {% if row.status == 'entregado' %}
+                        <span class="badge bg-success">
+                          <i class="bi bi-check-circle me-1"></i>{{ row.status|capitalize }}
+                        </span>
+                      {% elif row.status == 'atrasado' %}
+                        <span class="badge bg-warning text-dark">
+                          <i class="bi bi-clock me-1"></i>{{ row.status|capitalize }}
+                        </span>
+                      {% elif row.status == 'faltante' %}
+                        <span class="badge bg-danger">
+                          <i class="bi bi-x-circle me-1"></i>{{ row.status|capitalize }}
+                        </span>
+                      {% else %}
+                        <span class="badge bg-info">
+                          <i class="bi bi-arrow-repeat me-1"></i>{{ row.status|capitalize }}
+                        </span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center py-4">
+                      <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                      <span class="text-muted">No hay entregas que coincidan con los filtros</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Gráfico de progreso -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Progreso por Estudiante</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="progressChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña de Estudiantes -->
+    <div class="tab-pane fade" id="estudiantes" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-people me-2"></i>Lista de Estudiantes</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th><i class="bi bi-person me-1"></i>Nombre</th>
+                  <th><i class="bi bi-envelope me-1"></i>Email</th>
+                  <th><i class="bi bi-book me-1"></i>Curso</th>
+                  <th><i class="bi bi-bar-chart me-1"></i>Progreso</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in data.students_summary %}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                          <i class="bi bi-person text-white"></i>
+                        </div>
+                        <div class="fw-semibold">{{ student.name }}</div>
+                      </div>
+                    </td>
+                    <td>{{ student.email }}</td>
+                    <td>{{ student.course }}</td>
+                    <td>
+                      {% set progress = data.progress_by_student.get(student.name, {}) %}
+                      {% set total = progress.get('entregado', 0) + progress.get('atrasado', 0) + progress.get('faltante', 0) + progress.get('reentrega', 0) %}
+                      {% if total > 0 %}
+                        <div class="progress" style="height: 20px;">
+                          <div class="progress-bar bg-success" style="width: {{ (progress.get('entregado', 0) / total * 100)|round(1) }}%"></div>
+                          <div class="progress-bar bg-warning" style="width: {{ (progress.get('atrasado', 0) / total * 100)|round(1) }}%"></div>
+                          <div class="progress-bar bg-info" style="width: {{ (progress.get('reentrega', 0) / total * 100)|round(1) }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ progress.get('entregado', 0) }}/{{ total }} completadas</small>
+                      {% else %}
+                        <span class="text-muted">Sin entregas</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center py-4">
+                      <i class="bi bi-people fs-1 text-muted d-block mb-2"></i>
+                      <span class="text-muted">No hay estudiantes registrados</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña de Profesores -->
+    <div class="tab-pane fade" id="profesores" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Lista de Profesores</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th><i class="bi bi-person-badge me-1"></i>Nombre</th>
+                  <th><i class="bi bi-envelope me-1"></i>Email</th>
+                  <th><i class="bi bi-book me-1"></i>Curso</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for teacher in data.teachers_summary %}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                          <i class="bi bi-person-badge text-white"></i>
+                        </div>
+                        <div class="fw-semibold">{{ teacher.name }}</div>
+                      </div>
+                    </td>
+                    <td>{{ teacher.email }}</td>
+                    <td>{{ teacher.course }}</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="3" class="text-center py-4">
+                      <i class="bi bi-person-badge fs-1 text-muted d-block mb-2"></i>
+                      <span class="text-muted">No hay profesores registrados</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña de Cursos -->
+    <div class="tab-pane fade" id="cursos" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-book me-2"></i>Resumen de Cursos</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for course in data.courses_summary %}
+              <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-primary">
+                  <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-book me-1"></i>{{ course.name }}</h6>
+                  </div>
+                  <div class="card-body">
+                    <p class="card-text text-muted small">{{ course.description[:100] }}{% if course.description|length > 100 %}...{% endif %}</p>
+                    <div class="row text-center">
+                      <div class="col-4">
+                        <div class="fw-bold text-primary">{{ course.student_count }}</div>
+                        <small class="text-muted">Estudiantes</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="fw-bold text-info">{{ course.teacher_count }}</div>
+                        <small class="text-muted">Profesores</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="fw-bold text-success">{{ course.coursework_count }}</div>
+                        <small class="text-muted">Tareas</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-footer">
+                    <small class="text-muted">ID: {{ course.id }}</small>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="col-12 text-center py-4">
+                <i class="bi bi-book fs-1 text-muted d-block mb-2"></i>
+                <span class="text-muted">No hay cursos disponibles</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div>
 
-<script>
-const ctx = document.getElementById('progressChart');
-const chartData = {
-    labels: {{ data.progress_by_student.keys()|list|tojson }},
-    datasets: [{
-        label: 'Entregado',
-        data: {{ [v.entregado for v in data.progress_by_student.values()]|tojson }},
-        backgroundColor: '#28a745'
-    },{
-        label: 'Atrasado',
-        data: {{ [v.atrasado for v in data.progress_by_student.values()]|tojson }},
-        backgroundColor: '#ffc107'
-    },{
-        label: 'Faltante',
-        data: {{ [v.faltante for v in data.progress_by_student.values()]|tojson }},
-        backgroundColor: '#dc3545'
-    },{
-        label: 'Reentrega',
-        data: {{ [v.reentrega for v in data.progress_by_student.values()]|tojson }},
-        backgroundColor: '#17a2b8'
-    }]
-};
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-new Chart(ctx, {
-    type: 'bar',
-    data: chartData,
-    options: {
-        responsive: true,
-        scales: {
-            x: { stacked: true },
-            y: { stacked: true, beginAtZero: true }
+<script>
+// Gráfico de progreso
+const ctx = document.getElementById('progressChart');
+if (ctx) {
+    const chartData = {
+        labels: {{ chart_labels|tojson }},
+        datasets: [{
+            label: 'Entregado',
+            data: {{ chart_data.entregado|tojson }},
+            backgroundColor: '#198754',
+            borderColor: '#198754',
+            borderWidth: 1
+        },{
+            label: 'Atrasado',
+            data: {{ chart_data.atrasado|tojson }},
+            backgroundColor: '#ffc107',
+            borderColor: '#ffc107',
+            borderWidth: 1
+        },{
+            label: 'Faltante',
+            data: {{ chart_data.faltante|tojson }},
+            backgroundColor: '#dc3545',
+            borderColor: '#dc3545',
+            borderWidth: 1
+        },{
+            label: 'Reentrega',
+            data: {{ chart_data.reentrega|tojson }},
+            backgroundColor: '#0dcaf0',
+            borderColor: '#0dcaf0',
+            borderWidth: 1
+        }]
+    };
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Distribución de Estados por Estudiante'
+                }
+            },
+            scales: {
+                x: { 
+                    stacked: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                y: { 
+                    stacked: true, 
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
         }
+    });
+}
+
+// Funciones auxiliares
+function refreshData() {
+    window.location.reload();
+}
+
+function exportData() {
+    // Crear CSV con los datos de entregas
+    const data = {{ data.rows|tojson }};
+    let csv = 'Curso,Tarea,Estudiante,Estado\n';
+    
+    data.forEach(row => {
+        csv += `"${row.cohort}","${row.courseWork}","${row.studentId}","${row.status}"\n`;
+    });
+    
+    // Descargar archivo
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dashboard-entregas.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Función para limpiar caché
+async function clearCache() {
+    try {
+        const response = await fetch('/cache/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            // Mostrar mensaje de éxito
+            showAlert('success', '✅ Caché limpiado. Los datos se actualizarán en la próxima carga.');
+            
+            // Recargar la página después de 1 segundo
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showAlert('danger', '❌ Error al limpiar el caché.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('danger', '❌ Error de conexión al limpiar el caché.');
     }
+}
+
+// Función para mostrar alertas
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insertar al inicio del contenido principal
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
+// Inicializar tooltips de Bootstrap
+const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
 });
 </script>
 

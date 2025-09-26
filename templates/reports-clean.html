@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Semillero Digital</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard-direct">
+      <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="me-2">
+        <!-- Hoja superior (verde) -->
+        <path d="M30 10 Q50 5 60 25 Q55 35 40 30 Q25 25 30 10" fill="#4ECDC4" stroke="#4ECDC4" stroke-width="2"/>
+        
+        <!-- Hoja izquierda (azul) -->
+        <path d="M10 35 Q5 50 25 55 Q35 50 30 35 Q25 20 10 35" fill="#45B7D1" stroke="#45B7D1" stroke-width="2"/>
+        
+        <!-- Tallo central -->
+        <line x1="35" y1="30" x2="35" y2="70" stroke="#4ECDC4" stroke-width="4"/>
+        
+        <!-- Círculo base (naranja) -->
+        <circle cx="35" cy="75" r="20" fill="none" stroke="#FF6B35" stroke-width="6"/>
+        
+        <!-- Punto central (morado) -->
+        <circle cx="35" cy="75" r="6" fill="#6C5CE7"/>
+      </svg>
+      Semillero Digital
+    </a>
+    
+    <div class="d-flex align-items-center">
+      <span class="badge bg-success me-3">
+        <i class="bi bi-person-badge me-1"></i>{{ user.role|title if user else 'Usuario' }}
+      </span>
+      <a class="btn btn-outline-light me-2" href="/dashboard-direct">
+        <i class="bi bi-house"></i> Dashboard
+      </a>
+      <a class="btn btn-outline-light me-2" href="/notifications">
+        <i class="bi bi-bell"></i> Notificaciones
+      </a>
+      <a class="btn btn-outline-light me-2" href="/">
+        <i class="bi bi-house-door"></i> Home
+      </a>
+      <a class="btn btn-outline-light" href="/logout">
+        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+    <!-- Título de la página -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-graph-up-arrow me-2"></i>Reportes y Análisis</h2>
+                    <p class="text-muted">Métricas de rendimiento y estadísticas de Google Classroom</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="refreshReports()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Actualizar Datos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="bi bi-book text-primary" style="font-size: 2.5rem;"></i>
+                    <h4 class="card-title mt-2">{{ stats.total_courses if stats else 0 }}</h4>
+                    <p class="card-text">Cursos Activos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="bi bi-people text-success" style="font-size: 2.5rem;"></i>
+                    <h4 class="card-title mt-2">{{ stats.total_students if stats else 0 }}</h4>
+                    <p class="card-text">Estudiantes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="bi bi-file-earmark-text text-warning" style="font-size: 2.5rem;"></i>
+                    <h4 class="card-title mt-2">{{ stats.total_assignments if stats else 0 }}</h4>
+                    <p class="card-text">Tareas Asignadas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="bi bi-check-circle text-info" style="font-size: 2.5rem;"></i>
+                    <h4 class="card-title mt-2">{{ stats.completion_rate if stats else 0 }}%</h4>
+                    <p class="card-text">Tasa de Finalización</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <!-- Gráfico de barras -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-bar-chart me-2"></i>Entregas por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="submissionsChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico circular -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-pie-chart me-2"></i>Distribución por Curso</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="coursesChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de rendimiento por curso -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-table me-2"></i>Rendimiento por Curso</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Curso</th>
+                                    <th>Estudiantes</th>
+                                    <th>Tareas</th>
+                                    <th>Entregadas</th>
+                                    <th>Pendientes</th>
+                                    <th>% Completado</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if course_stats %}
+                                    {% for course in course_stats %}
+                                    <tr>
+                                        <td><strong>{{ course.name }}</strong></td>
+                                        <td>{{ course.students }}</td>
+                                        <td>{{ course.assignments }}</td>
+                                        <td><span class="badge bg-success">{{ course.submitted }}</span></td>
+                                        <td><span class="badge bg-warning">{{ course.pending }}</span></td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ course.completion_rate }}%"
+                                                     aria-valuenow="{{ course.completion_rate }}" 
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    {{ course.completion_rate }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if course.completion_rate > 80 else 'warning' if course.completion_rate > 50 else 'danger' }}">
+                                                {{ 'Excelente' if course.completion_rate > 80 else 'Bueno' if course.completion_rate > 50 else 'Necesita Atención' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                            <p class="mt-2">No hay datos de cursos disponibles</p>
+                                            <button class="btn btn-primary btn-sm" onclick="refreshReports()">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>Cargar Datos
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actividad reciente -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-clock-history me-2"></i>Actividad Reciente</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity %}
+                        <div class="timeline">
+                            {% for activity in recent_activity[:10] %}
+                            <div class="d-flex align-items-center border-bottom py-3">
+                                <div class="me-3">
+                                    <i class="bi bi-{{ 'check-circle text-success' if activity.type == 'submission' else 'plus-circle text-primary' if activity.type == 'assignment' else 'person-plus text-info' }}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong>{{ activity.title }}</strong>
+                                    <p class="mb-1 text-muted">{{ activity.description }}</p>
+                                    <small class="text-muted">{{ activity.time }}</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary">{{ activity.course }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-clock" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No hay actividad reciente registrada</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Datos para los gráficos
+const submissionsData = {
+    labels: ['Entregadas', 'En Progreso', 'Pendientes', 'Devueltas'],
+    datasets: [{
+        label: 'Entregas',
+        data: [
+            {{ stats.submitted if stats else 0 }},
+            {{ stats.in_progress if stats else 0 }},
+            {{ stats.pending if stats else 0 }},
+            {{ stats.returned if stats else 0 }}
+        ],
+        backgroundColor: [
+            'rgba(40, 167, 69, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(108, 117, 125, 0.8)',
+            'rgba(23, 162, 184, 0.8)'
+        ],
+        borderColor: [
+            'rgba(40, 167, 69, 1)',
+            'rgba(255, 193, 7, 1)',
+            'rgba(108, 117, 125, 1)',
+            'rgba(23, 162, 184, 1)'
+        ],
+        borderWidth: 1
+    }]
+};
+
+const coursesData = {
+    labels: [
+        {% if course_stats %}
+            {% for course in course_stats[:5] %}
+                '{{ course.name }}'{{ ',' if not loop.last }}
+            {% endfor %}
+        {% else %}
+            'Sin datos'
+        {% endif %}
+    ],
+    datasets: [{
+        label: 'Estudiantes por Curso',
+        data: [
+            {% if course_stats %}
+                {% for course in course_stats[:5] %}
+                    {{ course.students }}{{ ',' if not loop.last }}
+                {% endfor %}
+            {% else %}
+                0
+            {% endif %}
+        ],
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 205, 86, 0.8)',
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(153, 102, 255, 0.8)'
+        ]
+    }]
+};
+
+// Configurar gráficos
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de barras
+    const submissionsCtx = document.getElementById('submissionsChart').getContext('2d');
+    new Chart(submissionsCtx, {
+        type: 'bar',
+        data: submissionsData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico circular
+    const coursesCtx = document.getElementById('coursesChart').getContext('2d');
+    new Chart(coursesCtx, {
+        type: 'doughnut',
+        data: coursesData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+
+// Función para actualizar reportes
+function refreshReports() {
+    // Mostrar indicador de carga
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-arrow-clockwise spin me-2"></i>Actualizando...';
+    button.disabled = true;
+    
+    // Simular actualización (en producción, harías una llamada AJAX)
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        // Mostrar mensaje de éxito
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show';
+        alert.innerHTML = `
+            <i class="bi bi-check-circle me-2"></i>
+            Reportes actualizados correctamente
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.row'));
+        
+        // Auto-dismiss después de 3 segundos
+        setTimeout(() => {
+            alert.remove();
+        }, 3000);
+    }, 2000);
+}
+</script>
+
+<style>
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.timeline {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
+
+</body>
+</html>

@@ -7,3 +7,7 @@ google-auth-oauthlib
 google-api-python-client
 jinja2
 itsdangerous
+aiosmtplib
+email-validator
+python-multipart
+apscheduler
