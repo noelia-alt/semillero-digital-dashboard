@@ -1,5 +1,9 @@
 # 🎓 EduFlow Dashboard - Semillero Digital
 
+<p align="center">
+  <img src="images/LOGO.png" alt="EduFlow Logo" width="150"/>
+</p>
+
 **EduFlow: Optimizando el flujo de trabajo, información y comunicación en el ecosistema educativo de Semillero Digital.**
 
 ---
@@ -9,6 +13,27 @@
 **Demo en vivo:** [https://semillero-digital-dashboard.onrender.com](https://semillero-digital-dashboard.onrender.com)
 
 Un dashboard de análisis y gestión en tiempo real para Google Classroom, diseñado para potenciar la experiencia educativa de Semillero Digital con automatización, métricas avanzadas y una interfaz profesional.
+
+## 🖼️ Galería del Proyecto
+
+<table>
+  <tr>
+    <td align="center"><strong>Página de Inicio</strong></td>
+    <td align="center"><strong>Dashboard Principal</strong></td>
+  </tr>
+  <tr>
+    <td><img src="images/HOME.png" alt="Página de Inicio de EduFlow"></td>
+    <td><img src="images/DASHBOARD.png" alt="Dashboard Principal de EduFlow"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Reportes Avanzados</strong></td>
+    <td align="center"><strong>Gestión de Notificaciones</strong></td>
+  </tr>
+  <tr>
+    <td><img src="images/REPORTES.png" alt="Sección de Reportes de EduFlow"></td>
+    <td><img src="images/NOTIFICACIONES.png" alt="Sección de Notificaciones de EduFlow"></td>
+  </tr>
+</table>
 
 ## 🚀 Características Principales
 
