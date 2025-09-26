@@ -291,13 +291,3 @@ Este dashboard resuelve los **3 problemas centrales** identificados en Semillero
 - **Visualizaciones avanzadas** (barras, donut charts, tablas)
 - **Exportación CSV** para el equipo coordinador
 
-## 📈 Roadmap Futuro
-
-- [ ] Integración con base de datos persistente (PostgreSQL/MySQL)
-- [ ] Notificaciones por WhatsApp y Telegram
-- [ ] Integración con Google Drive para archivos
-- [ ] Dashboard móvil nativo
-- [ ] API REST completa para integraciones
-- [ ] Tests automatizados (pytest)
-- [ ] Deployment en la nube (AWS/GCP)
-- [ ] Módulo de asistencia con reconocimiento facial
