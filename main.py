@@ -33,6 +33,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/classroom.courses.readonly",
     "https://www.googleapis.com/auth/classroom.rosters.readonly",
     "https://www.googleapis.com/auth/classroom.student-submissions.students.readonly",
+    "https://www.googleapis.com/auth/classroom.profile.emails",
+    "https://www.googleapis.com/auth/classroom.profile.photos",
 ]
 
 # -----------------------------
@@ -117,6 +119,19 @@ def get_user_role(creds: Credentials, user_email: str):
     svc = classroom_service(creds)
     
     try:
+        # Primero obtener el userId del usuario actual
+        people_svc = people_service(creds)
+        user_profile = people_svc.people().get(
+            resourceName="people/me",
+            personFields="names,emailAddresses,metadata"
+        ).execute()
+        
+        # Extraer el userId del resourceName (formato: people/123456789)
+        current_user_id = user_profile.get("resourceName", "").replace("people/", "")
+        current_user_email = user_email.lower()
+        
+        logger.info(f"🔍 Usuario actual: {current_user_email}, ID: {current_user_id}")
+        
         # Obtener todos los cursos
         courses_response = svc.courses().list(pageSize=100).execute()
         courses = courses_response.get("courses", [])
@@ -133,16 +148,24 @@ def get_user_role(creds: Credentials, user_email: str):
             course_owner = course.get("ownerId", "")
             
             # Verificar si es dueño del curso (administrador)
-            if course_owner and course_owner == user_email:
-                is_owner = True
-                courses_as_owner += 1
+            # El ownerId puede ser un userId, no necesariamente un email
+            if course_owner:
+                # Intentar comparar tanto por email como por userId
+                if (course_owner == current_user_email or 
+                    (current_user_id and course_owner == current_user_id)):
+                    is_owner = True
+                    courses_as_owner += 1
+                    logger.info(f"🏆 Usuario es OWNER del curso: {course.get('name', course_id)}")
             
             # Verificar si es profesor
             try:
                 teachers_response = svc.courses().teachers().list(courseId=course_id).execute()
                 teachers = teachers_response.get("teachers", [])
                 for teacher in teachers:
-                    if teacher.get("profile", {}).get("emailAddress", "").lower() == user_email.lower():
+                    teacher_email = teacher.get("profile", {}).get("emailAddress", "").lower()
+                    teacher_id = teacher.get("userId", "")
+                    if (teacher_email == current_user_email or 
+                        (current_user_id and teacher_id == current_user_id)):
                         is_teacher = True
                         courses_as_teacher += 1
                         break
@@ -154,9 +177,17 @@ def get_user_role(creds: Credentials, user_email: str):
                 students_response = svc.courses().students().list(courseId=course_id).execute()
                 students = students_response.get("students", [])
                 for student in students:
-                    if student.get("profile", {}).get("emailAddress", "").lower() == user_email.lower():
+                    student_email = student.get("profile", {}).get("emailAddress", "").lower()
+                    student_id = student.get("userId", "")
+                    student_name = student.get("profile", {}).get("name", {}).get("fullName", "").lower()
+                    
+                    # Comparar por email y userId (sin comparar nombres para evitar confusión entre cuentas)
+                    if (student_email == current_user_email or 
+                        (current_user_id and student_id == current_user_id)):
                         is_student = True
                         courses_as_student += 1
+                        if not current_user_id:
+                            current_user_id = student_id  # Guardar el userId para futuras comparaciones
                         break
             except Exception:
                 pass
@@ -174,7 +205,8 @@ def get_user_role(creds: Credentials, user_email: str):
             # En desarrollo, si tiene permisos de classroom, probablemente es profesor
             return "profesor"  # Cambiado de "invitado" a "profesor" para desarrollo
             
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error determinando rol: {e}")
         return "invitado"
 
 def check_permission(user_role: str, required_roles: list) -> bool:
@@ -692,7 +724,7 @@ def debug_oauth():
             "client_secret": "CONFIGURADO" if settings.google_client_secret else "NO CONFIGURADO",
             "redirect_uri": settings.redirect_uri,
             "scopes": SCOPES,
-            "oauth_url_test": f"https://accounts.google.com/o/oauth2/auth?client_id={settings.google_client_id}&redirect_uri={settings.redirect_uri}&scope=openid email profile&response_type=code"
+            "oauth_url_test": f"https://accounts.google.com/o/oauth2/auth?client_id={settings.google_client_id}&redirect_uri={settings.redirect_uri}&scope={' '.join(SCOPES)}&response_type=code"
         }
     except Exception as e:
         return {"error": str(e)}
@@ -2788,3 +2820,25 @@ async def shutdown_event():
             print("ℹ️  Scheduler no estaba ejecutándose")
     except Exception as e:
         print(f"ℹ️  Scheduler ya estaba detenido: {e}")
+
+# -----------------------------
+# Configuración para producción
+# -----------------------------
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Configuración para desarrollo local
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    print(f"🚀 Iniciando servidor en {host}:{port}")
+    print(f"🌍 Entorno: {'PRODUCCIÓN' if os.getenv('RENDER') else 'DESARROLLO'}")
+    
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=False,  # No reload en producción
+        log_level="info"
+    )
