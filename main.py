@@ -511,7 +511,8 @@ def test_real_emails(request: Request):
         return result
         
     except Exception as e:
-        return {"error": str(e), "type": type(e).__name__}
+        logger.error(f"Error in test_real_emails: {str(e)}")
+        return {"error": "Error procesando solicitud", "details": "Consulte los logs para más información"}
 
 @app.get("/dashboard-all-courses", response_class=HTMLResponse)
 def dashboard_all_courses(request: Request):
@@ -678,9 +679,10 @@ def dashboard_all_courses(request: Request):
         
     except Exception as e:
         print(f"❌ Error en dashboard-all-courses: {e}")
-        return HTMLResponse(f"""
+        logger.error(f"Dashboard error: {str(e)}")
+        return HTMLResponse("""
         <h1>Error en Dashboard</h1>
-        <p>Error: {str(e)}</p>
+        <p>Ha ocurrido un error interno. Por favor, intente nuevamente.</p>
         <a href="/clear-session">Limpiar Sesión</a> | 
         <a href="/dashboard-direct">Dashboard</a> | 
         <a href="/">Home</a>
@@ -887,9 +889,10 @@ def reports_clean(request: Request):
         
     except Exception as e:
         print(f"❌ Error en reports-clean: {e}")
-        return HTMLResponse(f"""
+        logger.error(f"Reports error: {str(e)}")
+        return HTMLResponse("""
         <h1>Error en Reportes</h1>
-        <p>Error: {str(e)}</p>
+        <p>Ha ocurrido un error interno. Por favor, intente nuevamente.</p>
         <a href="/clear-session">Limpiar Sesión</a> | 
         <a href="/dashboard-direct">Dashboard</a> | 
         <a href="/">Home</a>
@@ -1095,9 +1098,10 @@ def dashboard_simple_emails(request: Request):
         
     except Exception as e:
         print(f"❌ Error en dashboard-simple-emails: {e}")
-        return HTMLResponse(f"""
+        logger.error(f"Dashboard simple emails error: {str(e)}")
+        return HTMLResponse("""
         <h1>Error en Dashboard</h1>
-        <p>Error: {str(e)}</p>
+        <p>Ha ocurrido un error interno. Por favor, intente nuevamente.</p>
         <a href="/clear-session">Limpiar Sesión</a> | 
         <a href="/">Home</a>
         """, status_code=500)
@@ -1219,7 +1223,8 @@ def list_courses(request: Request):
         return {"courses": courses}
     except Exception as e:
         logger.error(f"❌ Error obteniendo cursos: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error obteniendo cursos: {str(e)}")
+        logger.error(f"Error obteniendo cursos: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.get("/health")
 def health_check():
@@ -1248,7 +1253,8 @@ def clear_cache(request: Request):
         logger.info("🧹 Cache limpiado manualmente")
         return {"success": True, "message": "Cache limpiado exitosamente"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error limpiando cache: {str(e)}")
+        logger.error(f"Error limpiando cache: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.get("/students/{course_id}")
 def list_students(course_id: str, request: Request):
@@ -1605,7 +1611,8 @@ def get_delivery_stats(request: Request):
         
         return RedirectResponse(next_url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error en OAuth: {str(e)}")
+        logger.error(f"Error en OAuth: {str(e)}")
+        raise HTTPException(status_code=400, detail="Error en autenticación")
 
 @app.get("/logout")
 def logout(request: Request):
@@ -1653,7 +1660,8 @@ def get_calendar_events(request: Request, max_results: int = 50):
         return {"events": class_events}
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo eventos del calendario: {str(e)}")
+        logger.error(f"Error obteniendo eventos del calendario: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.get("/notifications/config")
 def get_notification_config(request: Request):
@@ -1951,9 +1959,10 @@ def reports_page(request: Request):
         return RedirectResponse("/login")
     except Exception as e:
         print(f"❌ Error en reportes: {e}")
-        return HTMLResponse(f"""
+        logger.error(f"Reports page error: {str(e)}")
+        return HTMLResponse("""
         <h1>Error en Reportes</h1>
-        <p>Error: {str(e)}</p>
+        <p>Ha ocurrido un error interno. Por favor, intente nuevamente.</p>
         <a href="/">Volver al inicio</a>
         """, status_code=500)
 
@@ -1995,7 +2004,8 @@ async def send_test_notification(request: Request, background_tasks: BackgroundT
         
         return {"success": True, "message": "Notificación de prueba enviada"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error enviando notificación: {str(e)}")
+        logger.error(f"Error enviando notificación: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.get("/notifications/check")
 async def manual_notification_check(request: Request, background_tasks: BackgroundTasks):
@@ -2013,7 +2023,8 @@ async def manual_notification_check(request: Request, background_tasks: Backgrou
         
         return {"success": True, "message": "Verificación de notificaciones iniciada"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en verificación: {str(e)}")
+        logger.error(f"Error en verificación: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 async def scheduled_notification_check():
     """Función para verificaciones programadas de notificaciones"""
