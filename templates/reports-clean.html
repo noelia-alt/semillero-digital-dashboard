@@ -15,7 +15,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="/dashboard-direct">
+    <a class="navbar-brand d-flex align-items-center" href="/dashboard">
       <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="me-2">
         <!-- Hoja superior (verde) -->
         <path d="M30 10 Q50 5 60 25 Q55 35 40 30 Q25 25 30 10" fill="#4ECDC4" stroke="#4ECDC4" stroke-width="2"/>
@@ -39,7 +39,7 @@
       <span class="badge bg-success me-3">
         <i class="bi bi-person-badge me-1"></i>{{ user.role|title if user else 'Usuario' }}
       </span>
-      <a class="btn btn-outline-light me-2" href="/dashboard-direct">
+      <a class="btn btn-outline-light me-2" href="/dashboard">
         <i class="bi bi-house"></i> Dashboard
       </a>
       <a class="btn btn-outline-light me-2" href="/notifications">
