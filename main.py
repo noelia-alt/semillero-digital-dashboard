@@ -292,6 +292,10 @@ def oauth_callback(request: Request, state: str | None = None, code: str | None 
                 # Si hay error en el parsing, usar dashboard por defecto
                 next_url = "/dashboard"
 
+        # Double-check URL safety before redirecting
+        if not is_safe_redirect_url(next_url):
+            next_url = "/dashboard"
+            
         return RedirectResponse(next_url)
     
     except Exception as e:
@@ -343,10 +347,11 @@ def test_dashboard(request: Request):
         
     except Exception as e:
         print(f"❌ Error en test-dashboard: {e}")
+        logger.error(f"Test dashboard error: {str(e)}")
         return {
             "status": "error",
-            "error": str(e),
-            "type": type(e).__name__
+            "message": "Error interno del servidor",
+            "details": "Consulte los logs para más información"
         }
 
 
