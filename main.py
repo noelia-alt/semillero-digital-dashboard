@@ -20,6 +20,7 @@ from googleapiclient.errors import HttpError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+from urllib.parse import urlparse
 from config import settings   # 👈 importamos la configuración global
 from notifications import notification_service, check_new_assignments, check_due_reminders
 
@@ -223,7 +224,22 @@ def check_permission(user_role: str, required_roles: list) -> bool:
     
     return user_level >= required_level
 
+
 # -----------------------------
+# Helper to validate safe redirect URLs (only allow relative paths, no scheme, no netloc, no backslash)
+def is_safe_redirect_url(target: str) -> bool:
+    """Allow only app-internal redirects (relative URLs, no host, path starting with /, no encoded \)"""
+    if not isinstance(target, str):
+        return False
+    target = target.replace('\\', '')  # remove backslashes (browsers may treat as /)
+    parsed = urlparse(target)
+    # Safe if: no scheme, no netloc, path starts with exactly one /
+    if (not parsed.scheme and not parsed.netloc
+            and parsed.path.startswith('/')
+            and not parsed.path.startswith('//')  # Prevent protocol-relative (//evil.com)
+    ):
+        return True
+    return False
 # OAuth routes
 # -----------------------------
 @app.get("/login")
@@ -268,11 +284,14 @@ def oauth_callback(request: Request, state: str | None = None, code: str | None 
                 decoded_state = unquote(state)
                 params = parse_qs(decoded_state)
                 if "next" in params:
-                    next_url = params["next"][0]
+                    candidate_url = params["next"][0]
+                    # Validate untrusted user input before redirecting
+                    if is_safe_redirect_url(candidate_url):
+                        next_url = candidate_url
             except Exception:
                 # Si hay error en el parsing, usar dashboard por defecto
                 next_url = "/dashboard"
-        
+
         return RedirectResponse(next_url)
     
     except Exception as e:
