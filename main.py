@@ -275,26 +275,9 @@ def oauth_callback(request: Request, state: str | None = None, code: str | None 
             "expiry": creds.expiry.isoformat() if creds.expiry else None,
         }
 
-        # Mejorar el parsing del state para evitar problemas de URL encoding
+        # Después del login exitoso, siempre redirigir al dashboard
         next_url = "/dashboard"
-        if state:
-            try:
-                from urllib.parse import parse_qs, unquote
-                # Decodificar el state y extraer el parámetro next
-                decoded_state = unquote(state)
-                params = parse_qs(decoded_state)
-                if "next" in params:
-                    candidate_url = params["next"][0]
-                    # Validate untrusted user input before redirecting
-                    if is_safe_redirect_url(candidate_url):
-                        next_url = candidate_url
-            except Exception:
-                # Si hay error en el parsing, usar dashboard por defecto
-                next_url = "/dashboard"
-
-        # Double-check URL safety before redirecting
-        if not is_safe_redirect_url(next_url):
-            next_url = "/dashboard"
+        print(f"🚀 Redirigiendo usuario autenticado a: {next_url}")
             
         return RedirectResponse(next_url)
     
