@@ -16,7 +16,24 @@ Un dashboard de análisis y gestión en tiempo real para Google Classroom, dise�
 
 ## 🖼️ Galería del Proyecto
 
-{{ ... }}
+<table>
+  <tr>
+    <td align="center"><strong>Página de Inicio</strong></td>
+    <td align="center"><strong>Dashboard Principal</strong></td>
+  </tr>
+  <tr>
+    <td><img src="images/HOME.png" alt="Página de Inicio de EduFlow"></td>
+    <td><img src="images/DASHBOARD.png" alt="Dashboard Principal de EduFlow"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Reportes Avanzados</strong></td>
+    <td align="center"><strong>Gestión de Notificaciones</strong></td>
+  </tr>
+  <tr>
+    <td><img src="images/REPORTES.png" alt="Sección de Reportes de EduFlow"></td>
+    <td><img src="images/NOTIFICACIONES.png" alt="Sección de Notificaciones de EduFlow"></td>
+  </tr>
+</table>
 
 ## 🛠️ Tecnologías Utilizadas
 
