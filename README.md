@@ -10,8 +10,6 @@
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-**Demo en vivo:** [https://semillero-digital-dashboard.onrender.com](https://semillero-digital-dashboard.onrender.com)
-
 Un dashboard de análisis y gestión en tiempo real para Google Classroom, diseñado para potenciar la experiencia educativa de Semillero Digital con automatización, métricas avanzadas y una interfaz profesional.
 
 ## 🖼️ Galería del Proyecto
