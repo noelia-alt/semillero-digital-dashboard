@@ -1195,6 +1195,57 @@ def me(request: Request):
         print(f"❌ Error en /me: {e}")
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
+@app.get("/profile", response_class=HTMLResponse)
+def profile_page(request: Request):
+    """Página de perfil del usuario"""
+    try:
+        print("👤 Cargando perfil de usuario...")
+        
+        # Verificar credenciales
+        creds = get_creds_from_session(request)
+        
+        # Obtener información del usuario
+        prof = people_service(creds).people().get(
+            resourceName="people/me",
+            personFields="names,emailAddresses,photos,organizations,occupations"
+        ).execute()
+        
+        name = (prof.get("names") or [{}])[0].get("displayName", "Usuario")
+        email = (prof.get("emailAddresses") or [{}])[0].get("value", "")
+        role = get_user_role(creds, email)
+        photo = (prof.get("photos") or [{}])[0].get("url", "")
+        
+        # Información adicional
+        organizations = prof.get("organizations", [])
+        organization = organizations[0].get("name", "") if organizations else ""
+        
+        user_info = {
+            "name": name,
+            "email": email,
+            "role": role,
+            "photo": photo,
+            "organization": organization
+        }
+        
+        print(f"✅ Perfil cargado para: {name}")
+        
+        # Renderizar template de perfil
+        return templates.TemplateResponse("profile.html", {
+            "request": request,
+            "user": user_info
+        })
+        
+    except HTTPException:
+        # Si no está autenticado, redirigir al login
+        return RedirectResponse("/login")
+    except Exception as e:
+        print(f"❌ Error en perfil: {e}")
+        return HTMLResponse("""
+        <h1>Error en Perfil</h1>
+        <p>Ha ocurrido un error interno. Por favor, intente nuevamente.</p>
+        <a href="/">Volver al inicio</a>
+        """, status_code=500)
+
 @app.get("/courses")
 def list_courses(request: Request):
     try:
