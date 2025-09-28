@@ -1321,7 +1321,18 @@ def get_dashboard_data(
         
         dashboard_data = {
             "rows": [],
-            "progress_by_student": defaultdict(lambda: {"entregado": 0, "atrasado": 0, "faltante": 0, "reentrega": 0}),
+            "progress_by_student": defaultdict(lambda: {
+                "entregado": 0, 
+                "atrasado": 0, 
+                "faltante": 0, 
+                "reentrega": 0,
+                "en_progreso": 0,
+                "en_progreso_tarde": 0,
+                "asignada": 0,
+                "no_entregada": 0,
+                "retirada": 0,
+                "retirada_tarde": 0
+            }),
             "courses_summary": [],
             "teachers_summary": [],
             "students_summary": []
@@ -1789,7 +1800,13 @@ def dashboard(
             "entregado": [dashboard_data["progress_by_student"][student]["entregado"] for student in chart_labels],
             "atrasado": [dashboard_data["progress_by_student"][student]["atrasado"] for student in chart_labels],
             "faltante": [dashboard_data["progress_by_student"][student]["faltante"] for student in chart_labels],
-            "reentrega": [dashboard_data["progress_by_student"][student]["reentrega"] for student in chart_labels]
+            "reentrega": [dashboard_data["progress_by_student"][student]["reentrega"] for student in chart_labels],
+            "en_progreso": [dashboard_data["progress_by_student"][student]["en_progreso"] for student in chart_labels],
+            "en_progreso_tarde": [dashboard_data["progress_by_student"][student]["en_progreso_tarde"] for student in chart_labels],
+            "asignada": [dashboard_data["progress_by_student"][student]["asignada"] for student in chart_labels],
+            "no_entregada": [dashboard_data["progress_by_student"][student]["no_entregada"] for student in chart_labels],
+            "retirada": [dashboard_data["progress_by_student"][student]["retirada"] for student in chart_labels],
+            "retirada_tarde": [dashboard_data["progress_by_student"][student]["retirada_tarde"] for student in chart_labels]
         }
         
         # Obtener información del usuario y su rol
